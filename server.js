@@ -9,8 +9,8 @@ const fs = require('fs')
 const dev = process.env.NODE_ENV !== 'production'
 const port = parseInt(process.env.PORT || '3000', 10)
 
-// Ensure data directory exists
-const dataDir = path.join(__dirname, 'data')
+// Ensure data directory exists (DATABASE_DIR env var for Railway Volume)
+const dataDir = process.env.DATABASE_DIR || path.join(__dirname, 'data')
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true })
 }
