@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { io, Socket } from 'socket.io-client'
 import MessageList from './MessageList'
 import MessageInput from './MessageInput'
+import NotificationToggle from './NotificationToggle'
 import Link from 'next/link'
 
 interface Message {
@@ -17,15 +18,29 @@ interface Props {
   roomId: string
 }
 
+function messagePreview(content: string) {
+  if (content.startsWith('__img__:')) return '📷 画像が届きました'
+  if (content.startsWith('__location__:')) return '📍 現在地が届きました'
+  return content.length > 50 ? content.slice(0, 50) + '…' : content
+}
+
 export default function ChatRoom({ roomId }: Props) {
   const [messages, setMessages] = useState<Message[]>([])
   const [senderId, setSenderId] = useState('')
   const [isConnected, setIsConnected] = useState(false)
   const [participantCount, setParticipantCount] = useState(0)
   const [partnerReadAt, setPartnerReadAt] = useState<number | null>(null)
+  const [notifEnabled, setNotifEnabled] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const socketRef = useRef<Socket | null>(null)
   const senderIdRef = useRef('')
+  const notifEnabledRef = useRef(false)
+
+  function handleNotifToggle(on: boolean) {
+    setNotifEnabled(on)
+    notifEnabledRef.current = on
+    localStorage.setItem(`notif:${roomId}`, on ? '1' : '0')
+  }
 
   function emitMarkRead() {
     if (socketRef.current && roomId) {
@@ -41,6 +56,13 @@ export default function ChatRoom({ roomId }: Props) {
     }
     setSenderId(sid)
     senderIdRef.current = sid
+
+    // 通知設定を復元
+    const saved = localStorage.getItem(`notif:${roomId}`)
+    if (saved === '1' && 'Notification' in window && Notification.permission === 'granted') {
+      setNotifEnabled(true)
+      notifEnabledRef.current = true
+    }
 
     fetch(`/api/rooms/${roomId}/messages`)
       .then((r) => r.json())
@@ -85,9 +107,16 @@ export default function ChatRoom({ roomId }: Props) {
 
     socket.on('new_message', (msg: { id: number; senderId: string; content: string; createdAt: number }) => {
       setMessages((prev) => [...prev, msg])
-      // 相手のメッセージを受信したら即座に既読を送信
       if (msg.senderId !== senderIdRef.current) {
         socket.emit('mark_read', { roomId, readAt: Date.now() })
+        // 通知が有効かつタブが非表示のとき通知を表示
+        if (notifEnabledRef.current && document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+          new Notification('新しいメッセージ', {
+            body: messagePreview(msg.content),
+            icon: '/icon-192.png',
+            tag: roomId,
+          })
+        }
       }
     })
 
@@ -154,6 +183,7 @@ export default function ChatRoom({ roomId }: Props) {
             <span className="text-xs text-gray-500">{statusText}</span>
           </div>
         </div>
+        <NotificationToggle enabled={notifEnabled} onToggle={handleNotifToggle} />
         <button
           onClick={() => navigator.clipboard.writeText(window.location.href)}
           className="text-xs text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 transition-colors"
