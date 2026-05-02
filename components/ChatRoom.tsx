@@ -125,7 +125,7 @@ export default function ChatRoom({ roomId }: Props) {
     : 'bg-green-400'
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="h-dvh flex flex-col bg-gray-50 overflow-hidden">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 flex-shrink-0">
         <Link href="/" className="text-gray-400 hover:text-gray-600 transition-colors">
