@@ -22,34 +22,43 @@ export default function ChatRoom({ roomId }: Props) {
   const [senderId, setSenderId] = useState('')
   const [isConnected, setIsConnected] = useState(false)
   const [participantCount, setParticipantCount] = useState(0)
+  const [partnerReadAt, setPartnerReadAt] = useState<number | null>(null)
   const [errorMsg, setErrorMsg] = useState('')
   const socketRef = useRef<Socket | null>(null)
+  const senderIdRef = useRef('')
+
+  function emitMarkRead() {
+    if (socketRef.current && roomId) {
+      socketRef.current.emit('mark_read', { roomId, readAt: Date.now() })
+    }
+  }
 
   useEffect(() => {
-    // Retrieve or generate senderId
     let sid = sessionStorage.getItem(`senderId:${roomId}`)
     if (!sid) {
       sid = crypto.randomUUID()
       sessionStorage.setItem(`senderId:${roomId}`, sid)
     }
     setSenderId(sid)
+    senderIdRef.current = sid
 
-    // Load message history
     fetch(`/api/rooms/${roomId}/messages`)
       .then((r) => r.json())
       .then(({ messages: hist }) => {
         if (!Array.isArray(hist)) return
-        setMessages(
-          hist.map((m: { id: number; sender_id: string; content: string; created_at: number }) => ({
-            id: m.id,
-            senderId: m.sender_id,
-            content: m.content,
-            createdAt: m.created_at,
-          }))
-        )
+        const mapped: Message[] = hist.map((m: { id: number; sender_id: string; content: string; created_at: number }) => ({
+          id: m.id,
+          senderId: m.sender_id,
+          content: m.content,
+          createdAt: m.created_at,
+        }))
+        setMessages(mapped)
+        // 相手のメッセージがあれば既読を送信
+        if (mapped.some((m) => m.senderId !== senderIdRef.current)) {
+          socketRef.current?.emit('mark_read', { roomId, readAt: Date.now() })
+        }
       })
 
-    // Connect socket
     const socket = io({ path: '/socket.io' })
     socketRef.current = socket
 
@@ -58,9 +67,7 @@ export default function ChatRoom({ roomId }: Props) {
       socket.emit('join_room', { roomId, senderId: sid })
     })
 
-    socket.on('disconnect', () => {
-      setIsConnected(false)
-    })
+    socket.on('disconnect', () => setIsConnected(false))
 
     socket.on('room_joined', ({ participantCount: count }: { participantCount: number }) => {
       setParticipantCount(count)
@@ -68,6 +75,8 @@ export default function ChatRoom({ roomId }: Props) {
 
     socket.on('user_joined', ({ participantCount: count }: { participantCount: number }) => {
       setParticipantCount(count)
+      // 相手が入室したとき既読を送信（こちらがすでにメッセージを見ている）
+      emitMarkRead()
     })
 
     socket.on('user_left', ({ participantCount: count }: { participantCount: number }) => {
@@ -76,15 +85,21 @@ export default function ChatRoom({ roomId }: Props) {
 
     socket.on('new_message', (msg: { id: number; senderId: string; content: string; createdAt: number }) => {
       setMessages((prev) => [...prev, msg])
+      // 相手のメッセージを受信したら即座に既読を送信
+      if (msg.senderId !== senderIdRef.current) {
+        socket.emit('mark_read', { roomId, readAt: Date.now() })
+      }
+    })
+
+    socket.on('partner_read', ({ readAt }: { readAt: number }) => {
+      setPartnerReadAt(readAt)
     })
 
     socket.on('error', ({ message }: { message: string }) => {
       setErrorMsg(message)
     })
 
-    return () => {
-      socket.disconnect()
-    }
+    return () => { socket.disconnect() }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId])
 
@@ -126,7 +141,6 @@ export default function ChatRoom({ roomId }: Props) {
 
   return (
     <div className="flex flex-col bg-gray-50" style={{ height: '100dvh' }}>
-      {/* Header */}
       <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 flex-shrink-0">
         <Link href="/" className="text-gray-400 hover:text-gray-600 transition-colors">
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -141,29 +155,19 @@ export default function ChatRoom({ roomId }: Props) {
           </div>
         </div>
         <button
-          onClick={() => {
-            const url = window.location.href
-            navigator.clipboard.writeText(url)
-          }}
+          onClick={() => navigator.clipboard.writeText(window.location.href)}
           className="text-xs text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 transition-colors"
-          title="URLをコピー"
         >
           URLをコピー
         </button>
       </header>
 
-      {/* Messages */}
       <div className="flex-1 min-h-0 overflow-y-auto">
-        <MessageList messages={messages} senderId={senderId} />
+        <MessageList messages={messages} senderId={senderId} partnerReadAt={partnerReadAt} />
       </div>
 
-      {/* Input */}
       <div className="flex-shrink-0">
-        <MessageInput
-          roomId={roomId}
-          onSend={handleSend}
-          disabled={!isConnected || participantCount < 2}
-        />
+        <MessageInput roomId={roomId} onSend={handleSend} disabled={!isConnected || participantCount < 2} />
       </div>
     </div>
   )

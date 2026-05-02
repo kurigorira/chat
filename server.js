@@ -119,6 +119,11 @@ app.prepare().then(() => {
       })
     })
 
+    socket.on('mark_read', ({ roomId, readAt }) => {
+      if (!roomId || typeof readAt !== 'number') return
+      socket.to(roomId).emit('partner_read', { readAt })
+    })
+
     socket.on('disconnect', () => {
       if (!currentRoom) return
 

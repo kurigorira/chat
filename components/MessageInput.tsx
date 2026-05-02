@@ -11,7 +11,8 @@ interface Props {
 export default function MessageInput({ roomId, onSend, disabled }: Props) {
   const [text, setText] = useState('')
   const [uploading, setUploading] = useState(false)
-  const [uploadError, setUploadError] = useState('')
+  const [locating, setLocating] = useState(false)
+  const [actionError, setActionError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   function handleSend() {
@@ -34,7 +35,7 @@ export default function MessageInput({ roomId, onSend, disabled }: Props) {
     e.target.value = ''
 
     setUploading(true)
-    setUploadError('')
+    setActionError('')
     try {
       const formData = new FormData()
       formData.append('file', file)
@@ -44,21 +45,42 @@ export default function MessageInput({ roomId, onSend, disabled }: Props) {
       })
       const data = await res.json()
       if (!res.ok) {
-        setUploadError(data.error || 'アップロードに失敗しました')
+        setActionError(data.error || 'アップロードに失敗しました')
         return
       }
       onSend(`__img__:${data.url}`)
     } catch {
-      setUploadError('アップロードに失敗しました')
+      setActionError('アップロードに失敗しました')
     } finally {
       setUploading(false)
     }
   }
 
+  function handleLocation() {
+    if (!navigator.geolocation) {
+      setActionError('この端末では位置情報を取得できません')
+      return
+    }
+    setLocating(true)
+    setActionError('')
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords
+        onSend(`__location__:${latitude},${longitude}`)
+        setLocating(false)
+      },
+      () => {
+        setActionError('位置情報の取得に失敗しました。許可を確認してください')
+        setLocating(false)
+      },
+      { timeout: 10000 }
+    )
+  }
+
   return (
     <div className="border-t border-gray-200 bg-white px-3 pt-3 pb-3 pb-safe">
-      {uploadError && (
-        <p className="text-xs text-red-500 mb-2 px-1">{uploadError}</p>
+      {actionError && (
+        <p className="text-xs text-red-500 mb-2 px-1">{actionError}</p>
       )}
       <div className="flex items-end gap-2">
         {/* 画像添付ボタン */}
@@ -87,6 +109,27 @@ export default function MessageInput({ roomId, onSend, disabled }: Props) {
           className="hidden"
           onChange={handleFileChange}
         />
+
+        {/* 位置情報ボタン */}
+        <button
+          type="button"
+          onClick={handleLocation}
+          disabled={disabled || locating}
+          className="flex-shrink-0 text-gray-400 hover:text-indigo-500 disabled:text-gray-200 p-2 rounded-xl transition-colors"
+          title="現在地を送信"
+        >
+          {locating ? (
+            <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+            </svg>
+          ) : (
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          )}
+        </button>
 
         {/* テキスト入力 */}
         <textarea
