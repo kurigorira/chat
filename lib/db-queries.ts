@@ -38,3 +38,19 @@ export function getRoom(id: string): Room | undefined {
 export function getMessages(roomId: string): Message[] {
   return stmtGetMessages.all(roomId)
 }
+
+const stmtUpsertEmail = db.prepare(
+  'INSERT OR REPLACE INTO participant_emails (room_id, sender_id, email) VALUES (?, ?, ?)'
+)
+
+const stmtGetRoomEmails = db.prepare<[string], { sender_id: string; email: string }>(
+  'SELECT sender_id, email FROM participant_emails WHERE room_id = ?'
+)
+
+export function saveParticipantEmail(roomId: string, senderId: string, email: string): void {
+  stmtUpsertEmail.run(roomId, senderId, email)
+}
+
+export function getRoomEmails(roomId: string): { sender_id: string; email: string }[] {
+  return stmtGetRoomEmails.all(roomId)
+}

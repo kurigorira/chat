@@ -5,6 +5,7 @@ import { io, Socket } from 'socket.io-client'
 import MessageList from './MessageList'
 import MessageInput from './MessageInput'
 import NotificationToggle from './NotificationToggle'
+import EmailNotificationSetup from './EmailNotificationSetup'
 import Link from 'next/link'
 
 interface Message {
@@ -196,7 +197,8 @@ export default function ChatRoom({ roomId }: Props) {
         <MessageList messages={messages} senderId={senderId} partnerReadAt={partnerReadAt} />
       </div>
 
-      <div className="flex-shrink-0">
+      <div className="flex-shrink-0 bg-white">
+        {senderId && <EmailNotificationSetup roomId={roomId} senderId={senderId} />}
         <MessageInput roomId={roomId} onSend={handleSend} disabled={!isConnected} />
       </div>
     </div>

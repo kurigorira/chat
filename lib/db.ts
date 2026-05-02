@@ -26,6 +26,13 @@ db.exec(`
   );
 
   CREATE INDEX IF NOT EXISTS idx_messages_room_id ON messages(room_id);
+
+  CREATE TABLE IF NOT EXISTS participant_emails (
+    room_id   TEXT NOT NULL,
+    sender_id TEXT NOT NULL,
+    email     TEXT NOT NULL,
+    PRIMARY KEY (room_id, sender_id)
+  );
 `)
 
 export default db
