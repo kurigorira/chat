@@ -125,7 +125,7 @@ export default function ChatRoom({ roomId }: Props) {
     : 'bg-green-400'
 
   return (
-    <div className="h-dvh flex flex-col bg-gray-50 overflow-hidden">
+    <div className="flex flex-col bg-gray-50" style={{ height: '100dvh' }}>
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 flex-shrink-0">
         <Link href="/" className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -153,15 +153,18 @@ export default function ChatRoom({ roomId }: Props) {
       </header>
 
       {/* Messages */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         <MessageList messages={messages} senderId={senderId} />
       </div>
 
       {/* Input */}
-      <MessageInput
-        onSend={handleSend}
-        disabled={!isConnected || participantCount < 2}
-      />
+      <div className="flex-shrink-0">
+        <MessageInput
+          roomId={roomId}
+          onSend={handleSend}
+          disabled={!isConnected || participantCount < 2}
+        />
+      </div>
     </div>
   )
 }
