@@ -1,9 +1,10 @@
 import CreateRoomButton from '@/components/CreateRoomButton'
+import InstallPrompt from '@/components/InstallPrompt'
 
 export default function Home() {
   return (
     <main className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md space-y-3">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center">
           <div className="mb-6">
             <div className="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -25,6 +26,8 @@ export default function Home() {
             URLを知らない人は参加できません。
           </p>
         </div>
+
+        <InstallPrompt />
       </div>
     </main>
   )

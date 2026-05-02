@@ -130,13 +130,13 @@ export default function ChatRoom({ roomId }: Props) {
   const statusText = !isConnected
     ? '接続中...'
     : participantCount < 2
-    ? '相手の参加を待っています...'
-    : '接続済み'
+    ? '相手は未接続（メッセージは届きます）'
+    : '相手と接続中'
 
   const statusColor = !isConnected
     ? 'bg-yellow-400'
     : participantCount < 2
-    ? 'bg-yellow-400'
+    ? 'bg-gray-300'
     : 'bg-green-400'
 
   return (
@@ -167,7 +167,7 @@ export default function ChatRoom({ roomId }: Props) {
       </div>
 
       <div className="flex-shrink-0">
-        <MessageInput roomId={roomId} onSend={handleSend} disabled={!isConnected || participantCount < 2} />
+        <MessageInput roomId={roomId} onSend={handleSend} disabled={!isConnected} />
       </div>
     </div>
   )

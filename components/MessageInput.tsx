@@ -137,7 +137,7 @@ export default function MessageInput({ roomId, onSend, disabled }: Props) {
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={disabled}
-          placeholder={disabled ? '接続を待っています...' : 'メッセージを入力'}
+          placeholder={disabled ? '接続中...' : 'メッセージを入力'}
           rows={1}
           className="flex-1 resize-none border border-gray-300 rounded-xl px-4 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-400 max-h-32 overflow-y-auto"
           style={{ minHeight: '44px' }}
